@@ -385,10 +385,26 @@ $('#trade-form').addEventListener('submit', e => { e.preventDefault(); withSubmi
 }); });
 
 // ─── Sininho de atualização ──────────────────────────────────
-// O APK carrega esta interface do site publicado, então mudança de tela/lógica chega sozinha.
-// O sininho só avisa quando sai um APK novo (mudança nativa), comparando o versionName instalado
-// com o androidVersion do version.json publicado.
+// Duas camadas, as duas lidas do mesmo version.json publicado:
+// 1) Interface (APK e navegador): o publish.mjs carimba index.html com <meta name="mutum-build"> e
+//    os arquivos com ?v=<build>. Se o version.json tiver um build diferente, a página recarrega
+//    buscando a versão nova (nunca com diálogo aberto, uma tentativa por build).
+// 2) Sininho (só APK): compara o versionName instalado com androidVersion. Só muda quando sai
+//    APK novo (mudança nativa).
+const BUILD = (document.querySelector('meta[name="mutum-build"]') || {}).content || '';
 let pendingUpdate = null;
+let pendingReload = null;
+
+function reloadToBuild(build) {
+  if (document.querySelector('dialog[open]')) { pendingReload = build; return; }
+  const key = `mutum-reload-${build}`;
+  try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch { /* sem storage: segue */ }
+  const url = new URL(location.href); url.searchParams.set('v', build);
+  location.replace(url.href);
+}
+
+// ao fechar qualquer diálogo, aplica o recarregamento que ficou esperando
+document.addEventListener('close', () => { if (pendingReload && !document.querySelector('dialog[open]')) reloadToBuild(pendingReload); }, true);
 
 function isVersionNewer(remote, current) {
   const parts = v => String(v).trim().replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
@@ -400,14 +416,21 @@ function isVersionNewer(remote, current) {
 }
 
 async function checkForUpdate() {
+  if (location.protocol === 'file:') return;
+  let data;
+  const versionUrl = new URL('version.json', location.href);
+  try {
+    const res = await fetch(`${versionUrl.href}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    data = await res.json();
+  } catch { return; }
+
+  // interface desatualizada? (não recarrega no meio do retorno de login com ?code=)
+  if (BUILD && data.version && data.version !== BUILD && !new URLSearchParams(location.search).has('code')) reloadToBuild(data.version);
+
   if (!isNative) return;
   try {
     const installed = (await plugin('App').getInfo()).version;
-    // relativo à página: funciona com o Pages servindo a raiz (redireciona pra /docs/) ou direto /docs
-    const versionUrl = new URL('version.json', location.href);
-    const res = await fetch(`${versionUrl.href}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return;
-    const data = await res.json();
     pendingUpdate = data.androidVersion && isVersionNewer(data.androidVersion, installed)
       ? { version: data.androidVersion, url: new URL(data.apkUrl || 'Mutum.apk', versionUrl).href }
       : null;
@@ -424,10 +447,10 @@ $('#update-button').addEventListener('click', () => {
   });
 });
 
-if (isNative) {
-  checkForUpdate();
-  plugin('App').addListener('resume', checkForUpdate);
-}
+checkForUpdate();
+setInterval(checkForUpdate, 10 * 60 * 1000);
+if (isNative) plugin('App').addListener('resume', checkForUpdate);
+else document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
 
 // ─── Sessão ──────────────────────────────────────────────────
 db.auth.onAuthStateChange((event, session) => {
