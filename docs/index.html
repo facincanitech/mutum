@@ -2,12 +2,12 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="mutum-build" content="20260924214639" />
+    <meta name="mutum-build" content="20260924220007" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#173c30" />
     <meta name="color-scheme" content="light" />
     <title>Mutum</title>
-    <link rel="stylesheet" href="styles.css?v=20260924214639" />
+    <link rel="stylesheet" href="styles.css?v=20260924220007" />
   </head>
   <body>
     <main id="app">
@@ -60,6 +60,8 @@
               <div class="balance-art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
             </div>
 
+            <button class="urgent-banner" data-go="urgencia" type="button"><i>!</i><span><b id="urgent-banner-title">Precisa de ajuda agora?</b><small id="urgent-banner-copy">Peça uma urgência para a vizinhança</small></span><em>→</em></button>
+
             <div class="section-title"><div><small>ACONTECENDO AGORA</small><h2>Perto de você</h2></div><button data-go="mutiroes">Ver todos</button></div>
             <article class="featured-card" id="featured-event">
               <div class="featured-image garden-art"><span class="tag" id="featured-when"></span><div class="sun"></div><div class="hill"></div><div class="plants">♧ ♧ ♧</div></div>
@@ -90,10 +92,20 @@
             <div id="trades-list" class="trade-grid"></div>
           </section>
 
+          <section class="view" data-view="urgencia">
+            <div class="page-heading"><p class="eyebrow">AJUDA NA HORA</p><h1>Urgência</h1><p>Peça ajuda rápida da vizinhança e pague em MTR quando resolverem.</p><button class="create-button" id="new-urgency-button" type="button">+ Pedir ajuda agora</button></div>
+            <div class="emergency-note"><b>Emergência de verdade:</b> ligue <a href="tel:190">190</a> · <a href="tel:192">192</a> · <a href="tel:193">193</a></div>
+            <div id="my-urgencies" class="stack-list"></div>
+            <div class="section-title compact"><div><small>NA VIZINHANÇA</small><h2>Pedidos abertos</h2></div></div>
+            <div id="open-urgencies" class="stack-list"></div>
+          </section>
+
           <section class="view" data-view="wallet">
             <div class="page-heading wallet-title"><p class="eyebrow">MINHA CONTA</p><h1>Carteira</h1></div>
-            <div class="wallet-balance"><span>Saldo em Mutira</span><strong><b id="balance-wallet">342</b> <small>MTR</small></strong><p>≈ R$ <span id="balance-brl">342</span> em trocas na rede</p><div class="wallet-logo">m</div></div>
-            <div class="quick-actions"><button id="receive-button"><i>↓</i><span>Receber</span></button><button id="send-button"><i>↑</i><span>Transferir</span></button><button id="statement-button"><i>≡</i><span>Extrato</span></button></div>
+            <div class="wallet-balance"><span>Saldo em Mutira</span><strong><b id="balance-wallet">342</b> <small>MTR</small></strong><p id="balance-hint">Ganhe MTR participando de mutirões</p><div class="wallet-logo">m</div></div>
+            <div class="quick-actions"><button id="receive-button"><i>↓</i><span>Receber</span></button><button id="scan-button"><i>⌗</i><span>Pagar / Escanear</span></button><button id="statement-button"><i>≡</i><span>Extrato</span></button></div>
+            <div id="orders-block" hidden><div class="section-title compact"><div><small>PAGAMENTO RESERVADO</small><h2>Pedidos</h2></div></div><div id="orders-list" class="stack-list"></div></div>
+            <div class="rules-card" id="rules-card"></div>
             <div class="section-title compact"><div><small>ÚLTIMOS DIAS</small><h2>Movimentações</h2></div></div>
             <div id="transactions-list" class="transactions"></div>
           </section>
@@ -103,6 +115,7 @@
           <button class="active" data-go="home"><i>⌂</i><span>Início</span></button>
           <button data-go="mutiroes"><i>♧</i><span>Mutirões</span></button>
           <button data-go="trocas"><i>⇄</i><span>Trocas</span></button>
+          <button data-go="urgencia"><i class="nav-urgent">!</i><span>Urgência</span></button>
           <button data-go="wallet"><i>▣</i><span>Carteira</span></button>
           <button id="profile-button" aria-label="Abrir perfil"><i class="nav-avatar" id="nav-avatar">V</i><span>Perfil</span></button>
         </nav>
@@ -120,12 +133,12 @@
         <dialog id="transfer-dialog">
           <form id="transfer-form" class="form-sheet">
             <button class="dialog-close" type="button" data-close-transfer aria-label="Fechar">×</button>
-            <div class="dialog-icon">↑</div><h2>Transferir Mutiras</h2>
-            <p>Envie saldo para outra pessoa da rede.</p>
+            <div class="dialog-icon">↑</div><h2>Pagar em MTR</h2>
+            <p>Confira para quem vai o pagamento.</p>
             <label>Para<input id="transfer-to" type="text" placeholder="Código MUTUM-XXXXXX ou e-mail" required /></label>
             <label>Valor em MTR<input id="transfer-amount" type="number" min="1" step="1" placeholder="0" required /></label>
             <label>Mensagem <span>(opcional)</span><input id="transfer-note" type="text" placeholder="Por que está enviando?" /></label>
-            <button class="primary-button" type="submit">Confirmar transferência</button>
+            <button class="primary-button" type="submit">Confirmar pagamento</button>
           </form>
         </dialog>
 
@@ -159,11 +172,59 @@
           </form>
         </dialog>
 
+        <dialog id="urgency-dialog">
+          <form id="urgency-form" class="form-sheet">
+            <button class="dialog-close" type="button" data-close="urgency-dialog" aria-label="Fechar">×</button>
+            <div class="dialog-icon urgent">!</div><h2>Pedir ajuda agora</h2>
+            <p>O valor fica reservado e só vai para quem ajudar quando essa pessoa escanear o seu QR.</p>
+            <label>Do que você precisa<input id="urgency-title" type="text" minlength="3" maxlength="80" placeholder="Ex.: Me tranquei fora de casa" required /></label>
+            <label>Detalhes <span>(opcional)</span><textarea id="urgency-description" maxlength="500" rows="2" placeholder="O que aconteceu, o que precisa levar…"></textarea></label>
+            <label>Onde <span>(só quem aceitar vê)</span><input id="urgency-place" type="text" minlength="2" maxlength="160" placeholder="Rua, número, ponto de referência" required /></label>
+            <label>Quanto você paga em MTR<input id="urgency-reward" type="number" min="1" step="1" placeholder="0" required /></label>
+            <p class="form-hint" id="urgency-hint"></p>
+            <button class="primary-button" type="submit">Pedir ajuda</button>
+          </form>
+        </dialog>
+
+        <dialog id="qr-dialog">
+          <div class="profile-sheet qr-sheet">
+            <button class="dialog-close" type="button" data-close="qr-dialog" aria-label="Fechar">×</button>
+            <h2 id="qr-title">QR</h2>
+            <p id="qr-copy"></p>
+            <div id="qr-box" class="qr-box"></div>
+            <div id="qr-code-text" class="qr-code-text"></div>
+            <div class="qr-timer"><i id="qr-timer-bar"></i></div>
+            <p class="form-hint" id="qr-foot"></p>
+          </div>
+        </dialog>
+
+        <dialog id="scan-dialog">
+          <form id="scan-form" class="form-sheet">
+            <button class="dialog-close" type="button" data-close="scan-dialog" aria-label="Fechar">×</button>
+            <h2 id="scan-title">Escanear QR</h2>
+            <p id="scan-copy">Aponte a câmera para o QR do Mutum.</p>
+            <div class="scan-box"><video id="scan-video" playsinline muted></video><div class="scan-frame"></div><p id="scan-status">Abrindo câmera…</p></div>
+            <label id="scan-manual-label">Ou digite o código<input id="scan-manual" type="text" inputmode="numeric" maxlength="20" placeholder="000000" /></label>
+            <button class="primary-button" type="submit">Confirmar código</button>
+          </form>
+        </dialog>
+
+        <dialog id="report-dialog">
+          <form id="report-form" class="form-sheet">
+            <button class="dialog-close" type="button" data-close="report-dialog" aria-label="Fechar">×</button>
+            <div class="dialog-icon urgent">⚑</div><h2>Denunciar</h2>
+            <p id="report-copy">Conte o que aconteceu. A denúncia é anônima para a outra pessoa.</p>
+            <label>Motivo<textarea id="report-reason" minlength="3" maxlength="500" rows="3" required></textarea></label>
+            <button class="primary-button" type="submit">Enviar denúncia</button>
+          </form>
+        </dialog>
+
         <dialog id="receive-dialog">
           <div class="profile-sheet">
             <button class="dialog-close" type="button" data-close-receive aria-label="Fechar">×</button>
             <div class="dialog-icon">↓</div><h2>Receber Mutiras</h2>
-            <p>Mostre ou compartilhe este código com quem vai transferir.</p>
+            <p>Quem vai te pagar escaneia este QR em Carteira → Pagar.</p>
+            <div id="receive-qr" class="qr-box"></div>
             <div id="receive-code" class="receive-code">MUTUM-0000</div>
             <button id="copy-code-button" class="primary-button" type="button">Copiar código</button>
           </div>
@@ -181,8 +242,10 @@
         </dialog>
       </section>
     </main>
-    <script src="vendor/supabase.js?v=20260924214639"></script>
-    <script src="config.js?v=20260924214639"></script>
-    <script src="app.js?v=20260924214639"></script>
+    <script src="vendor/supabase.js?v=20260924220007"></script>
+    <script src="vendor/qrcode.js?v=20260924220007"></script>
+    <script src="vendor/jsQR.js?v=20260924220007"></script>
+    <script src="config.js?v=20260924220007"></script>
+    <script src="app.js?v=20260924220007"></script>
   </body>
 </html>
