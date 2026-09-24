@@ -1,0 +1,6 @@
+# Repositório público = só o site publicado (GitHub Pages, pasta docs/).
+# Todo o resto (código-fonte, supabase/, scripts/, .env*, android/, CLAUDE.md) fica só local.
+/*
+!/docs/
+!/.gitignore
+!/README.md
