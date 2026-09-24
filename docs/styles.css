@@ -31,3 +31,5 @@
 .form-hint{font-size:11px!important;color:var(--muted);text-align:left!important;margin:4px 0 0!important}
 .rules-card{margin-top:20px;background:var(--paper);border:1px dashed var(--line);border-radius:16px;padding:14px 16px;font-size:11px;color:var(--muted);line-height:1.6}.rules-card b{color:var(--ink)}
 .negative-balance{color:#e8a598!important}
+
+.google-g{font-family:Georgia,serif;font-size:19px;color:#1f3028}

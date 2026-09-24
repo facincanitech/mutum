@@ -2,12 +2,12 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="mutum-build" content="20260924221045" />
+    <meta name="mutum-build" content="20260924221926" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#173c30" />
     <meta name="color-scheme" content="light" />
     <title>Mutum</title>
-    <link rel="stylesheet" href="styles.css?v=20260924221045" />
+    <link rel="stylesheet" href="styles.css?v=20260924221926" />
   </head>
   <body>
     <main id="app">
@@ -18,29 +18,11 @@
           <h1>Bem-vindo<br />ao Mutum.</h1>
           <p class="lead">Troque saberes, participe de mutirões e faça a moeda circular perto de você.</p>
         </div>
-        <form id="login-form" class="login-card">
-          <div id="email-step">
-            <label for="email">Seu e-mail</label>
-            <div class="input-wrap">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>
-              <input id="email" type="email" placeholder="voce@exemplo.com" autocomplete="email" required />
-            </div>
-            <button class="primary-button" type="submit">Receber código de acesso <span>→</span></button>
-            <div class="login-divider"><span>ou</span></div>
-            <button id="google-button" class="google-button" type="button"><b>G</b> Entrar com Google</button>
-          </div>
-          <div id="code-step" hidden>
-            <label for="otp">Link enviado para <span id="otp-email"></span></label>
-            <div class="input-wrap">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V7a6 6 0 0 1 12 0v3M5 10h14v11H5z"/></svg>
-              <input id="otp" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="000000" autocomplete="one-time-code" />
-            </div>
-            <button class="primary-button" type="submit">Entrar no Mutum <span>→</span></button>
-            <button id="back-to-email" class="link-button" type="button">Usar outro e-mail</button>
-          </div>
-          <p id="login-note" class="login-note">Enviamos um código para o seu e-mail. Sem senha.</p>
+        <div id="login-form" class="login-card">
+          <button id="google-button" class="primary-button" type="button"><b class="google-g">G</b> Entrar com Google</button>
+          <p class="login-note">Use sua conta Google. Sem senha nova, sem cadastro.</p>
           <p class="login-note">Ao entrar, você concorda com os <a href="termos.html">Termos de uso</a>.</p>
-        </form>
+        </div>
       </section>
 
       <section id="main-screen" class="main-screen" hidden>
@@ -244,10 +226,10 @@
         </dialog>
       </section>
     </main>
-    <script src="vendor/supabase.js?v=20260924221045"></script>
-    <script src="vendor/qrcode.js?v=20260924221045"></script>
-    <script src="vendor/jsQR.js?v=20260924221045"></script>
-    <script src="config.js?v=20260924221045"></script>
-    <script src="app.js?v=20260924221045"></script>
+    <script src="vendor/supabase.js?v=20260924221926"></script>
+    <script src="vendor/qrcode.js?v=20260924221926"></script>
+    <script src="vendor/jsQR.js?v=20260924221926"></script>
+    <script src="config.js?v=20260924221926"></script>
+    <script src="app.js?v=20260924221926"></script>
   </body>
 </html>

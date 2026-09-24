@@ -12,8 +12,7 @@ const state = {
   session: null, profile: null,
   events: [], trades: [], transactions: [], urgencies: [], orders: [],
   rules: null,
-  tradeFilter: 'all', eventFilter: 'all', search: '',
-  pendingEmail: ''
+  tradeFilter: 'all', eventFilter: 'all', search: ''
 };
 
 const errorMessages = {
@@ -143,22 +142,12 @@ async function loadAll() {
 // ─── Telas ───────────────────────────────────────────────────
 function showLogin() {
   $('#main-screen').hidden = true; $('#login-screen').hidden = false;
-  setLoginStep('email');
 }
 
 async function showApp() {
   $('#login-screen').hidden = true; $('#main-screen').hidden = false;
   $('#greeting').textContent = greeting();
   await loadAll();
-}
-
-function setLoginStep(step) {
-  $('#email-step').hidden = step !== 'email';
-  $('#code-step').hidden = step !== 'code';
-  $('#login-note').textContent = step === 'code'
-    ? 'Toque no link do e-mail neste celular, ou digite o código se ele vier no e-mail. Confira também o spam.'
-    : 'Enviamos um código para o seu e-mail. Sem senha.';
-  if (step === 'code') { $('#otp-email').textContent = state.pendingEmail; $('#otp').value = ''; $('#otp').focus(); }
 }
 
 const priceLabel = t => `${t.price} MTR / ${esc(t.unit)}`;
@@ -588,30 +577,6 @@ if (isNative) {
 }
 
 // ─── Eventos de interface ────────────────────────────────────
-$('#login-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const buttons = $$('#login-form button'); buttons.forEach(b => b.disabled = true);
-  try {
-    if (!$('#email-step').hidden) {
-      const email = $('#email').value.trim().toLowerCase();
-      const emailRedirectTo = isNative ? config.nativeRedirectUrl : location.origin + location.pathname;
-      const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo } });
-      if (error) throw error;
-      state.pendingEmail = email; setLoginStep('code');
-    } else {
-      const token = $('#otp').value.replace(/\D/g, '');
-      if (token.length < 6) { toast('Digite o código completo'); return; }
-      const { error } = await db.auth.verifyOtp({ email: state.pendingEmail, token, type: 'email' });
-      if (error) throw error;
-    }
-  } catch (err) {
-    toast(/expired|invalid/i.test(err.message) ? 'Código inválido ou expirado' : friendlyError(err));
-  } finally {
-    buttons.forEach(b => b.disabled = false);
-  }
-});
-
-$('#back-to-email').addEventListener('click', () => setLoginStep('email'));
 $('#google-button').addEventListener('click', signInWithGoogle);
 
 document.addEventListener('click', e => {
@@ -647,7 +612,7 @@ $('#dialog-primary').addEventListener('click', () => { $('#action-dialog').close
 $('#trade-search').addEventListener('input', e => { state.search = e.target.value.trim().toLowerCase(); render(); });
 $('#profile-button').addEventListener('click', () => $('#profile-dialog').showModal());
 $('[data-close-profile]').addEventListener('click', () => $('#profile-dialog').close());
-$('#logout-button').addEventListener('click', async () => { $('#profile-dialog').close(); await db.auth.signOut(); $('#email').value = ''; });
+$('#logout-button').addEventListener('click', async () => { $('#profile-dialog').close(); await db.auth.signOut(); });
 
 $('#receive-button').addEventListener('click', () => {
   const code = state.profile ? state.profile.receive_code : '';
