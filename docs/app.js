@@ -38,7 +38,9 @@ const errorMessages = {
   urgencias_demais: 'Você já tem 2 urgências abertas.',
   ja_ajudando: 'Você já está ajudando em outra urgência.',
   conta_nova_transferencia: 'Contas com menos de 7 dias ainda não podem transferir.',
-  limite_diario_transferencia: 'Limite de 50 MTR em transferências por dia.'
+  limite_diario_transferencia: 'Limite de 50 MTR em transferências por dia.',
+  data_passada: 'Escolha uma data futura.',
+  mutirao_com_presencas: 'Mutirão com presenças confirmadas não pode ser excluído. Encerre para pagar ou devolver.'
 };
 const friendlyError = err => {
   const msg = (err && err.message) || '';
@@ -172,8 +174,8 @@ function render() {
     $('#balance-home').classList.toggle('negative-balance', p.balance < 0);
     $('#balance-wallet').classList.toggle('negative-balance', p.balance < 0);
     $('#balance-hint').textContent = p.balance < 0
-      ? `Você está no fiado da urgência. Participe de mutirões para voltar ao positivo.`
-      : 'Ganhe MTR participando de mutirões';
+      ? `Você está devendo ${-p.balance} MTR à rede. Ajude em mutirões, trocas e urgências para voltar ao positivo.`
+      : 'Ganhe MTR ajudando em mutirões, trocas e urgências';
   }
 
   const uid = state.session && state.session.user.id;
@@ -219,7 +221,7 @@ function render() {
 
   const stats = $$('.profile-stats b');
   if (stats.length && p) {
-    stats[0].textContent = state.transactions.filter(t => t.kind === 'mutirao' || t.kind === 'organizer').length;
+    stats[0].textContent = state.transactions.filter(t => t.kind === 'mutirao' || t.kind === 'mutirao_hold').length;
     stats[1].textContent = state.transactions.filter(t => ['trade', 'sale', 'urgency_paid'].includes(t.kind)).length;
     stats[2].textContent = p.balance;
   }
@@ -232,21 +234,23 @@ const minutes = n => n * 60000;
 function eventActions(e) {
   const start = new Date(e.starts_at).getTime(), now = Date.now();
   const checkinOpen = now >= start - minutes(rule('checkin_before_min')) && now <= start + minutes(rule('checkin_after_hours') * 60);
+  const rewardPill = e.reward_total ? `<span class="status-pill ok">PAGA ${e.reward_total} MTR DIVIDIDOS ENTRE QUEM FOR</span><br>` : '<span class="status-pill">VOLUNTÁRIO</span><br>';
   const report = e.mine ? '' : `<span class="spacer"></span><button class="link-action" data-report="event:${e.id}">Denunciar</button>`;
   if (e.closed_at) {
-    return `<span class="status-pill ${e.paid ? 'ok' : ''}">${e.paid ? `ENCERRADO · GEROU ${e.minted_total} MTR` : 'ENCERRADO · NÃO ATINGIU O MÍNIMO'}</span>`;
+    const text = e.paid ? `ENCERRADO · PAGOU ${e.paid_total} MTR (${e.paid_each} CADA)` : e.reward_total ? `ENCERRADO · MENOS DE ${rule('mutirao_min_people')} PRESENÇAS, VALOR DEVOLVIDO` : 'ENCERRADO · VOLUNTÁRIO';
+    return `<span class="status-pill ${e.paid ? 'ok' : ''}">${text}</span>`;
   }
   if (e.mine) {
     const parts = [];
     if (checkinOpen) parts.push(`<button class="small-action" data-event-qr="${e.id}">Mostrar QR de presença</button>`);
     if (now >= start) parts.push(`<button class="small-action joined" data-close-event="${e.id}">Encerrar e pagar</button>`);
     if (!e.checkins && now < start) parts.push(`<button class="small-action danger" data-delete-event="${e.id}">Excluir</button>`);
-    return parts.join('');
+    return rewardPill + parts.join('');
   }
-  if (e.checked_in) return `<span class="status-pill ok">PRESENÇA CONFIRMADA</span>${report}`;
+  if (e.checked_in) return `${rewardPill}<span class="status-pill ok">PRESENÇA CONFIRMADA</span>${report}`;
   const join = `<button class="small-action ${e.joined ? 'joined' : ''}" data-join="${e.id}">${e.joined ? 'Não vou mais' : 'Quero ir'}</button>`;
   const scan = checkinOpen ? `<button class="small-action" data-event-scan="${e.id}">Estou aqui: escanear QR</button>` : '';
-  return scan + join + report;
+  return rewardPill + scan + join + report;
 }
 
 function urgencyCard(u) {
@@ -295,8 +299,8 @@ function renderOrders() {
 function renderRules() {
   if (!state.rules) return;
   $('#rules-card').innerHTML = `<b>Como funciona a moeda</b><br>
-    Todo mundo começa com 0 MTR. MTR só nasce em mutirão: cada presença confirmada por QR vale ${rule('mutirao_reward')} MTR, e quem organiza ganha ${rule('organizer_reward')} MTR, se pelo menos ${rule('mutirao_min_people')} pessoas confirmarem.
-    Cada pessoa pode ganhar até ${rule('mint_week_cap')} MTR por semana em mutirões. Todo pagamento é por QR: nas trocas o valor fica reservado até o QR ser escaneado (ou libera sozinho em ${rule('escrow_days')} dias), e na urgência dá para ficar no fiado até o quanto você já ganhou no Mutum (máximo ${rule('urgency_credit')} MTR).`;
+    O app não cria MTR: todo MTR sai da carteira de alguém, e todo mundo começa com 0. Quem organiza um mutirão pode prometer um valor, que sai da própria carteira e é dividido igualmente entre quem confirmar presença por QR (mínimo ${rule('mutirao_min_people')} pessoas, senão volta).
+    Contas com mais de ${rule('credit_min_account_days')} dias podem ficar até −${rule('credit_limit')} MTR para pagar mutirões e urgências. Todo pagamento é por QR; nas trocas o valor fica reservado até o QR ser escaneado (ou libera sozinho em ${rule('escrow_days')} dias).`;
 }
 
 function navigate(view) {
@@ -429,7 +433,7 @@ async function handlePayload(text) {
   if (error) { toast(friendlyError(error)); return; }
   if (!data.ok) { toast(friendlyError({ message: data.error })); return; }
   await loadAll();
-  if (type === 'event') modal('Presença confirmada!', `Você está no mutirão “${data.title}”. Os MTR entram quando o organizador encerrar (ou sozinhos, ${rule('auto_close_hours')} h depois do início).`, '♧');
+  if (type === 'event') modal('Presença confirmada!', `Você está no mutirão “${data.title}”. Se ele paga MTR, sua parte entra quando o organizador encerrar (ou sozinha, ${rule('auto_close_hours')} h depois do início).`, '♧');
   else modal('Pagamento recebido!', `+${data.amount} MTR por “${data.title}”.`, '✓');
 }
 
@@ -448,14 +452,16 @@ function showEventQr(id) {
 function closeEvent(id) {
   const e = state.events.find(x => x.id === id); if (!e) return;
   const min = rule('mutirao_min_people');
-  const copy = e.checkins >= min
-    ? `${e.checkins} presenças confirmadas. Cada uma recebe ${rule('mutirao_reward')} MTR e você recebe ${rule('organizer_reward')} MTR (respeitando o teto semanal). Depois de encerrar, ninguém mais confirma presença.`
-    : `Só ${e.checkins} ${e.checkins === 1 ? 'presença confirmada' : 'presenças confirmadas'}. É preciso pelo menos ${min} para gerar MTR. Encerrar agora não paga ninguém.`;
+  const copy = !e.reward_total
+    ? `Mutirão voluntário com ${e.checkins} ${e.checkins === 1 ? 'presença' : 'presenças'}. Depois de encerrar, ninguém mais confirma presença.`
+    : e.checkins >= min
+      ? `${e.checkins} presenças confirmadas. Os ${e.reward_total} MTR que você reservou são divididos: ${Math.floor(e.reward_total / e.checkins)} MTR para cada. A sobra volta para você.`
+      : `Só ${e.checkins} ${e.checkins === 1 ? 'presença confirmada' : 'presenças confirmadas'}. É preciso pelo menos ${min} para pagar. Se encerrar agora, os ${e.reward_total} MTR voltam para você.`;
   modal('Encerrar mutirão?', copy, '♧', 'Encerrar', async () => {
     const { data, error } = await db.rpc('close_event', { p_event_id: id });
     if (error) { toast(friendlyError(error)); return; }
     await loadAll();
-    modal('Mutirão encerrado', data > 0 ? `Foram gerados ${data} MTR para quem participou.` : 'Nenhum MTR foi gerado.', '♧');
+    modal('Mutirão encerrado', data > 0 ? `Você pagou ${data} MTR para quem participou. Obrigado!` : e.reward_total ? 'Ninguém foi pago e o valor voltou para você.' : 'Mutirão voluntário encerrado. Obrigado!', '♧');
   });
 }
 
@@ -536,9 +542,9 @@ function deleteEvent(id) {
   const event = state.events.find(x => x.id === id); if (!event) return;
   const who = event.participants ? ` ${event.participants} ${event.participants === 1 ? 'pessoa confirmada perde' : 'pessoas confirmadas perdem'} a presença.` : '';
   modal('Excluir mutirão?', `“${event.title}” some da lista de todo mundo.${who}`, '!', 'Sim, excluir', async () => {
-    const { data, error } = await db.from('events').delete().eq('id', id).select('id');
-    if (error || !data.length) { toast(error ? friendlyError(error) : 'Não foi possível excluir'); return; }
-    await loadEvents(); render(); toast('Mutirão excluído');
+    const { error } = await db.rpc('delete_event', { p_event_id: id });
+    if (error) { toast(friendlyError(error)); return; }
+    await loadAll(); toast(event.reward_total ? 'Mutirão excluído e valor devolvido' : 'Mutirão excluído');
   });
 }
 
@@ -654,7 +660,7 @@ $('#scan-button').addEventListener('click', () => openScanner({ title: 'Pagar ou
 $('#new-urgency-button').addEventListener('click', async () => {
   $('#urgency-form').reset();
   const { data: credit } = await db.rpc('my_credit');
-  const fiado = credit ? ` Você pode usar até ${credit} MTR de fiado.` : '';
+  const fiado = credit ? ` Pode ficar até −${credit} MTR.` : ' Conta nova ainda não pode ficar negativa.';
   $('#urgency-hint').textContent = `Seu saldo: ${state.profile.balance} MTR.${fiado} O valor fica reservado agora e volta se você cancelar ou ninguém aceitar em ${rule('urgency_open_hours')} h.`;
   $('#urgency-dialog').showModal();
 });
@@ -697,17 +703,22 @@ $('#new-event-button').addEventListener('click', () => {
   const suggestion = new Date(Date.now() + 86400000); suggestion.setHours(9, 0, 0, 0);
   $('#event-when').value = localDateTimeValue(suggestion);
   $('#event-when').min = localDateTimeValue(new Date());
+  $('#event-reward-hint').textContent = '';
+  db.rpc('my_credit').then(({ data: credit }) => {
+    $('#event-reward-hint').textContent = `Sai da sua carteira agora (saldo ${state.profile.balance} MTR${credit ? `, pode ficar até −${credit}` : '; conta nova ainda não fica negativa'}) e é dividido igualmente entre quem confirmar presença por QR. Com menos de ${rule('mutirao_min_people')} presenças, volta para você.`;
+  });
   $('#event-dialog').showModal();
 });
 $('#event-form').addEventListener('submit', e => { e.preventDefault(); withSubmit(e.target, async () => {
   const startsAt = new Date($('#event-when').value);
   if (Number.isNaN(startsAt.getTime()) || startsAt < new Date(Date.now() - 3600000)) { toast('Escolha uma data futura'); return; }
-  const { error } = await db.from('events').insert({
-    title: $('#event-title').value.trim(), place: $('#event-place').value.trim(),
-    description: $('#event-description').value.trim(), starts_at: startsAt.toISOString()
+  const reward = Math.max(0, Math.floor(Number($('#event-reward').value) || 0));
+  const { error } = await db.rpc('create_event', {
+    p_title: $('#event-title').value.trim(), p_place: $('#event-place').value.trim(),
+    p_description: $('#event-description').value.trim(), p_starts_at: startsAt.toISOString(), p_reward_total: reward
   });
   if (error) { toast(friendlyError(error)); return; }
-  $('#event-dialog').close(); await loadEvents(); render(); toast('Mutirão publicado');
+  $('#event-dialog').close(); await loadAll(); toast(reward ? `Mutirão publicado. ${reward} MTR reservados da sua carteira.` : 'Mutirão publicado');
 }); });
 
 $('#new-trade-button').addEventListener('click', () => { $('#trade-form').reset(); tradeIcon = TRADE_ICONS[0]; renderIconPicker(); $('#trade-dialog').showModal(); });

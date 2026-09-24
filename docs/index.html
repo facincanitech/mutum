@@ -2,12 +2,12 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="mutum-build" content="20260924220007" />
+    <meta name="mutum-build" content="20260924221045" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#173c30" />
     <meta name="color-scheme" content="light" />
     <title>Mutum</title>
-    <link rel="stylesheet" href="styles.css?v=20260924220007" />
+    <link rel="stylesheet" href="styles.css?v=20260924221045" />
   </head>
   <body>
     <main id="app">
@@ -150,6 +150,8 @@
             <label>Nome<input id="event-title" type="text" minlength="3" maxlength="80" placeholder="Ex.: Limpeza da praça" required /></label>
             <label>Local<input id="event-place" type="text" minlength="2" maxlength="80" placeholder="Ex.: Praça do Sol" required /></label>
             <label>Quando<input id="event-when" type="datetime-local" required /></label>
+            <label>Quanto você paga no total <span>(MTR, 0 = voluntário)</span><input id="event-reward" type="number" min="0" step="1" value="0" /></label>
+            <p class="form-hint" id="event-reward-hint"></p>
             <label>Descrição <span>(opcional)</span><textarea id="event-description" maxlength="500" rows="3" placeholder="O que vai rolar, o que levar…"></textarea></label>
             <button class="primary-button" type="submit">Publicar mutirão</button>
           </form>
@@ -242,10 +244,10 @@
         </dialog>
       </section>
     </main>
-    <script src="vendor/supabase.js?v=20260924220007"></script>
-    <script src="vendor/qrcode.js?v=20260924220007"></script>
-    <script src="vendor/jsQR.js?v=20260924220007"></script>
-    <script src="config.js?v=20260924220007"></script>
-    <script src="app.js?v=20260924220007"></script>
+    <script src="vendor/supabase.js?v=20260924221045"></script>
+    <script src="vendor/qrcode.js?v=20260924221045"></script>
+    <script src="vendor/jsQR.js?v=20260924221045"></script>
+    <script src="config.js?v=20260924221045"></script>
+    <script src="app.js?v=20260924221045"></script>
   </body>
 </html>
