@@ -388,7 +388,6 @@ $('#trade-form').addEventListener('submit', e => { e.preventDefault(); withSubmi
 // O APK carrega esta interface do site publicado, então mudança de tela/lógica chega sozinha.
 // O sininho só avisa quando sai um APK novo (mudança nativa), comparando o versionName instalado
 // com o androidVersion do version.json publicado.
-const SITE_URL = 'https://facincanitech.github.io/mutum/';
 let pendingUpdate = null;
 
 function isVersionNewer(remote, current) {
@@ -404,11 +403,13 @@ async function checkForUpdate() {
   if (!isNative) return;
   try {
     const installed = (await plugin('App').getInfo()).version;
-    const res = await fetch(`${SITE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' });
+    // relativo à página: funciona com o Pages servindo a raiz (redireciona pra /docs/) ou direto /docs
+    const versionUrl = new URL('version.json', location.href);
+    const res = await fetch(`${versionUrl.href}?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
     pendingUpdate = data.androidVersion && isVersionNewer(data.androidVersion, installed)
-      ? { version: data.androidVersion, url: new URL(data.apkUrl || 'Mutum.apk', SITE_URL).href }
+      ? { version: data.androidVersion, url: new URL(data.apkUrl || 'Mutum.apk', versionUrl).href }
       : null;
   } catch { pendingUpdate = null; }
   $('#update-dot').hidden = !pendingUpdate;
